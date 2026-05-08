@@ -7,3 +7,5 @@ mtcnn
 firebase-admin
 google-cloud-firestore
 tf-keras
+scipy
+numpy
