@@ -1,0 +1,10 @@
+streamlit
+pandas
+plotly
+opencv-contrib-python-headless
+deepface
+mtcnn
+firebase-admin
+google-cloud-firestore
+tf-keras
+tensorflow-cpu
