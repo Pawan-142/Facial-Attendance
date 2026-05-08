@@ -214,7 +214,7 @@ def inject_css():
 
 def render_header():
     today_str = date.today().strftime("%A, %B %d, %Y")
-    st.markdown(f\"\"\"
+    st.markdown(f"""
     <div class="vt-nav">
         <div class="vt-logo-container">
             <div class="vt-logo-glow">🎓</div>
@@ -234,15 +234,15 @@ def render_header():
             </div>
         </div>
     </div>
-    \"\"\", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 def render_footer():
-    st.markdown(\"\"\"
+    st.markdown("""
     <div class="vt-footer">
         © 2026 <span>VisionTrack AI</span> • Optimized for Academic Integrity<br>
         <small style="color: #475569; margin-top: 8px; display: block;">Powered by DeepFace Engine • Cloud Synchronized via Firestore</small>
     </div>
-    \"\"\", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 def section(title):
     st.markdown(f'<div class="vt-section-title">{title}</div>', unsafe_allow_html=True)
