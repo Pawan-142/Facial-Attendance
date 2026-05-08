@@ -285,7 +285,7 @@ with tabs[1]:
             
             webrtc_streamer(
                 key="attendance-camera",
-                video_processor_factory=lambda: AttendanceVideoProcessor(sid, st.session_state.threshold),
+                video_processor_factory=lambda: AttendanceVideoProcessor(sid, thr),
                 rtc_configuration=RTC_CONFIG,
                 media_stream_constraints={"video": True, "audio": False},
                 async_processing=True,
