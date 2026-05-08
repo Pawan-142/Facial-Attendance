@@ -21,9 +21,9 @@ FIREBASE_KEY_PATH = os.path.join(BASE_DIR, "serviceAccountKey.json")
 USE_FIREBASE      = True   # Set False to use local SQLite instead
 
 # ── Face Recognition ───────────────────────────────────────────────────────────
-MODEL_NAME    = "ArcFace"
-THRESHOLD     = 0.40          # cosine distance — lower = stricter
-FRAME_SKIP    = 5             # run DeepFace every Nth frame
+MODEL_NAME    = "Facenet512"
+THRESHOLD     = 0.30          # lower = stricter for Facenet512
+FRAME_SKIP    = 7             # run DeepFace every Nth frame
 COOLDOWN_SEC  = 10            # seconds before re-trying same face
 NUM_CAPTURES  = 10            # photos captured during enrollment
 ANTI_SPOOFING = False         # Set to True for liveness checks (can cause false positives)

@@ -8,15 +8,15 @@ import numpy as np
 from deepface import DeepFace
 from detect import detect_faces
 from face_db import load_face_db, match_face
-from config import FRAME_SKIP, THRESHOLD
+from config import FRAME_SKIP, THRESHOLD, MODEL_NAME
 
 
 def get_embedding(face_img):
-    """Extract ArcFace embedding from a pre-cropped face image."""
+    """Extract embedding from a pre-cropped face image."""
     try:
         result = DeepFace.represent(
             img_path=face_img,
-            model_name="ArcFace",
+            model_name=MODEL_NAME,
             enforce_detection=False
         )
         return np.array(result[0]["embedding"])
