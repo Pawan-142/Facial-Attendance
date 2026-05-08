@@ -6,7 +6,6 @@ Runs heavy inference every FRAME_SKIP frames for performance.
 import cv2
 import numpy as np
 from deepface import DeepFace
-from detect import detect_faces
 from face_db import load_face_db, match_face
 from config import FRAME_SKIP, THRESHOLD, MODEL_NAME
 
@@ -71,6 +70,7 @@ class FrameSkipRecognizer:
         small_frame = cv2.resize(frame, (target_w, target_h))
 
         results = []
+        from detect import detect_faces
         faces   = detect_faces(small_frame)
 
         for face in faces:

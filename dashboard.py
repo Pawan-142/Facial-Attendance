@@ -6,6 +6,10 @@ import queue
 import threading
 import time
 import os
+# Memory management: suppress heavy TF logging and force CPU optimization
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -145,8 +149,12 @@ RTC_CONFIG = RTCConfiguration(
 
 class AttendanceVideoProcessor(VideoProcessorBase):
     def __init__(self, subject_id, threshold):
+        # Lazy load heavy modules only when camera starts
         from face_db import load_face_db
         from recognize import FrameSkipRecognizer
+        import gc
+        gc.collect() # Force cleanup before starting heavy tasks
+        
         self.db = load_face_db()
         self.recognizer = FrameSkipRecognizer(threshold=threshold)
         self.subject_id = subject_id
