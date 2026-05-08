@@ -6,7 +6,6 @@ Controlled by config.USE_FIREBASE.
 import os
 import pickle
 import numpy as np
-from scipy.spatial.distance import cosine
 from config import FACE_DB_PATH, DATABASE_DIR, THRESHOLD, USE_FIREBASE
 
 # In-memory cache to avoid re-fetching from Firestore on every frame
@@ -121,6 +120,7 @@ def match_face(query_embedding, db, threshold=None):
     best_match    = None
     best_distance = float("inf")
 
+    from scipy.spatial.distance import cosine
     for roll_no, data in db.items():
         embeddings = data.get("embeddings", None)
         if embeddings is None:

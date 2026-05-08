@@ -5,13 +5,13 @@ Runs heavy inference every FRAME_SKIP frames for performance.
 """
 import cv2
 import numpy as np
-from deepface import DeepFace
 from face_db import load_face_db, match_face
 from config import FRAME_SKIP, THRESHOLD, MODEL_NAME
 
 
 def get_embedding(face_img):
     """Extract embedding from a pre-cropped face image."""
+    from deepface import DeepFace
     try:
         result = DeepFace.represent(
             img_path=face_img,
