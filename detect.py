@@ -7,10 +7,15 @@ and returns bounding boxes + landmarks
 """
 
 import cv2
-from mtcnn import MTCNN
+_detector = None
 
-# Initialize MTCNN detector (loads once)
-detector = MTCNN()
+def get_detector():
+    """Lazy-load MTCNN detector."""
+    global _detector
+    if _detector is None:
+        from mtcnn import MTCNN
+        _detector = MTCNN()
+    return _detector
 
 
 def detect_faces(frame):
@@ -27,7 +32,7 @@ def detect_faces(frame):
             - keypoints: dict of facial landmarks
     """
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    faces = detector.detect_faces(rgb_frame)
+    faces = get_detector().detect_faces(rgb_frame)
     return faces
 
 
