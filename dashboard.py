@@ -60,7 +60,6 @@ st.set_page_config(
 init_db()
 inject_css()
 render_header()
-render_footer()
 
 # ── Session state ──────────────────────────────────────────────────────────────
 def _ss(key, default):
@@ -691,3 +690,5 @@ with tabs[7]:
         st.dataframe(df_prev[cols_p], use_container_width=True, hide_index=True)
     else:
         st.info("No records match the selected filters.")
+
+render_footer()
