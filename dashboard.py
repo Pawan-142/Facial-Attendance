@@ -80,6 +80,7 @@ _ss("frame_queue",  queue.Queue(maxsize=2))
 _ss("active_session_id", None)
 _ss("threshold",    THRESHOLD)
 _ss("cam_started_at", 0.0)
+_ss("enrolling_now",  None)
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def subject_options():
@@ -328,17 +329,51 @@ with tabs[2]:
                 st.error("Name and Roll No are required.")
             else:
                 add_student(roll_no, name, email, dept, year)
-                stframe_e = st.empty()
-                with st.spinner("Camera opening — follow pose guide…"):
-                    res = enroll_student(name, roll_no, force=force, stframe=stframe_e)
-                stframe_e.empty()
-                if res == "exists":
-                    st.warning(f"**{roll_no}** already enrolled. Enable 'Overwrite'.")
-                elif res is True:
-                    st.success(f"✅ **{name}** ({roll_no}) enrolled!")
-                    st.rerun()
+                st.session_state.enrolling_now = {"name": name, "roll_no": roll_no, "force": force}
+                st.rerun()
+
+    if st.session_state.get("enrolling_now"):
+        enroll_data = st.session_state.enrolling_now
+        st.markdown("---")
+        section(f"📸 Enroll: {enroll_data['name']} ({enroll_data['roll_no']})")
+        img_file = st.camera_input("Take a clear photo to enroll")
+        
+        if img_file:
+            from PIL import Image
+            import numpy as np
+            from enroll import get_embedding
+            from detect import crop_face
+            import cv2
+            
+            with st.spinner("Processing face..."):
+                img = Image.open(img_file)
+                frame = np.array(img)
+                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+                
+                face_crop = crop_face(frame)
+                if face_crop is not None:
+                    emb = get_embedding(face_crop)
+                    if emb is not None:
+                        db = load_face_db()
+                        db[enroll_data['roll_no']] = {
+                            "roll_no":      enroll_data['roll_no'],
+                            "display_name": enroll_data['name'],
+                            "embeddings":   [emb], 
+                            "embedding":    emb,
+                            "num_samples":  1,
+                        }
+                        save_face_db(db)
+                        st.success(f"✅ Enrollment Complete for **{enroll_data['name']}**!")
+                        st.session_state.enrolling_now = None
+                        if st.button("Close and Finish"): st.rerun()
+                    else:
+                        st.error("Face found but features too blurry. Use better light.")
                 else:
-                    st.error("Enrollment incomplete. Try better lighting.")
+                    st.warning("No face detected. Look directly at the camera and try again.")
+        
+        if st.button("Cancel Enrollment"):
+            st.session_state.enrolling_now = None
+            st.rerun()
 
     st.markdown("---")
 
@@ -380,11 +415,8 @@ with tabs[2]:
                         st.success(f"Removed {s['name']}")
                         st.rerun()
                     if b2.button("🔄 Re-enroll Face", key=f"reen_{s['roll_no']}"):
-                        stfr = st.empty()
-                        res  = enroll_student(s["name"], s["roll_no"],
-                                              force=True, stframe=stfr)
-                        stfr.empty()
-                        st.success("Re-enrolled!") if res is True else st.error("Failed.")
+                        st.session_state.enrolling_now = {"name": s["name"], "roll_no": s["roll_no"], "force": True}
+                        st.rerun()
 
                 if hist:
                     df_h = pd.DataFrame(hist)[["date","time","subject_code","subject_name","confidence"]]
