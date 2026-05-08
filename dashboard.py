@@ -156,7 +156,7 @@ class AttendanceVideoProcessor(VideoProcessorBase):
         import gc
         gc.collect() # Force cleanup before starting heavy tasks
         
-        self.db = load_face_db()
+        self.db = load_face_db(force_refresh=True)
         self.recognizer = FrameSkipRecognizer(threshold=threshold)
         self.subject_id = subject_id
         self.last_marked = {}
@@ -279,10 +279,13 @@ with tabs[1]:
                     st.session_state.active_session_id = None
                     st.rerun()
 
-        # ── Web Camera (Browser-Based) ─────────────────────────────────────────
         if st.session_state.active_session_id:
             sid = st.session_state.active_session_id
             st.caption(f"🎥 Session #{sid} live  •  Requesting camera access...")
+            
+            if st.button("🔄 Sync New Enrollments"):
+                st.toast("AI Database Refreshed!")
+                st.rerun()
             
             webrtc_streamer(
                 key="attendance-camera",

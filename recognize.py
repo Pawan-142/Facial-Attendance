@@ -128,7 +128,8 @@ def draw_recognition_results(frame, results):
 
         else:
             color = (0, 0, 220)
-            label = "Unknown"
+            dist_info = f" ({r['distance']:.2f})" if r['distance'] != float('inf') else ""
+            label = f"Unknown{dist_info}"
 
         cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
         # Label background
