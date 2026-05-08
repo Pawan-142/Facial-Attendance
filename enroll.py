@@ -7,14 +7,14 @@ import cv2
 import os
 import time
 import numpy as np
-from deepface import DeepFace
 from detect import detect_faces, crop_face
 from face_db import load_face_db, save_face_db
 from config import FACES_DIR, NUM_CAPTURES, MODEL_NAME
 
 
 def get_embedding(face_img):
-    """Extract ArcFace embedding from a cropped 112×112 face image."""
+    """Extract embedding from a cropped 112×112 face image."""
+    from deepface import DeepFace
     try:
         result = DeepFace.represent(
             img_path=face_img,
