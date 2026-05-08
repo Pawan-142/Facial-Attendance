@@ -43,7 +43,7 @@ if USE_FIREBASE:
         import streamlit as _st
         _st.warning(f"⚠️ Firebase unavailable ({_fb_err}) — using local SQLite.")
 
-from face_db import load_face_db, delete_face_entry, list_enrolled
+from face_db import load_face_db, save_face_db, delete_face_entry, list_enrolled
 from enroll import enroll_student
 from main import run_attendance_system
 from config import (
