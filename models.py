@@ -371,7 +371,23 @@ def get_attendance_summary(subject_id=None):
         d["total_sessions"] = total
         d["pct"] = round((d["days_present"] / total * 100) if total > 0 else 0, 1)
         result.append(d)
+    result.sort(key=lambda x: x["days_present"], reverse=True)
     return result
+
+
+def get_daily_trend(subject_id):
+    """Fallback trend for SQLite."""
+    conn = get_conn()
+    q = """
+        SELECT date, COUNT(DISTINCT roll_no) as count
+        FROM attendance a
+        JOIN sessions s ON a.session_id = s.id
+        WHERE s.subject_id = ?
+        GROUP BY date ORDER BY date
+    """
+    rows = conn.execute(q, (subject_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 
 # ══════════════════════════════════════════════════════════════
