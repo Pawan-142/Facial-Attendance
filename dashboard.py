@@ -46,6 +46,9 @@ from config import (
     ATTENDANCE_THRESHOLD, DEPARTMENTS, YEARS,
     FACES_DIR, THRESHOLD, FRAME_SKIP,
 )
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
+import av
+
 from ui_helpers import (
     inject_css, render_header, render_footer,
     section, card, confidence_badge, build_attendance_df,
@@ -135,6 +138,49 @@ tabs = st.tabs([
     "📋 Records", "📅 History", "📊 Analytics", "💾 Export",
 ])
 
+# ── WebRTC Configuration ──────────────────────────────────────────────────────
+RTC_CONFIG = RTCConfiguration(
+    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+)
+
+class AttendanceVideoProcessor(VideoProcessorBase):
+    def __init__(self, subject_id, threshold):
+        from face_db import load_face_db
+        from recognize import FrameSkipRecognizer
+        self.db = load_face_db()
+        self.recognizer = FrameSkipRecognizer(threshold=threshold)
+        self.subject_id = subject_id
+        self.last_marked = {}
+        self.cooldown = 10 # seconds
+
+    def recv(self, frame):
+        from recognize import draw_recognition_results
+        from config import COOLDOWN_SEC
+        import time
+
+        img = frame.to_ndarray(format="bgr24")
+        
+        if not self.subject_id:
+            return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+        # Process frame
+        results = self.recognizer.process(img, self.db)
+        
+        # Logic to mark attendance
+        for res in results:
+            roll = res.get("roll_no")
+            if roll:
+                now = time.time()
+                if roll not in self.last_marked or (now - self.last_marked[roll]) > self.cooldown:
+                    status = mark_attendance(roll, self.subject_id, res.get("distance"))
+                    res["status"] = status
+                    if status in ("marked", "duplicate"):
+                        self.last_marked[roll] = now
+
+        # Draw results
+        annotated_img = draw_recognition_results(img, results)
+        return av.VideoFrame.from_ndarray(annotated_img, format="bgr24")
+
 # ─── TAB 0: Dashboard ─────────────────────────────────────────────────────────
 with tabs[0]:
     section("📊 Today's Overview")
@@ -213,75 +259,41 @@ with tabs[1]:
 
         with col_btn:
             st.markdown("<br><br>", unsafe_allow_html=True)
-            if not st.session_state.cam_running:
+            # Create session if not active
+            if not st.session_state.active_session_id:
                 if st.button("▶  Start Session", type="primary", use_container_width=True):
-                    db = load_face_db()
-                    if not db:
-                        st.error("No students enrolled. Go to Students tab.")
-                    else:
-                        sid = create_session(subject_id, faculty=faculty)
-                        st.session_state.active_session_id = sid
-                        st.session_state.stop_event.clear()
-                        st.session_state.cam_running = True
-                        q = queue.Queue(maxsize=2)
-                        st.session_state.frame_queue = q
-                        t = threading.Thread(
-                            target=_camera_worker,
-                            args=(q, st.session_state.stop_event,
-                                  sid, st.session_state.threshold),
-                            daemon=True,
-                        )
-                        t.start()
-                        st.session_state.cam_thread = t
-                        st.session_state.cam_started_at = time.time()
-                        st.rerun()
+                    sid = create_session(subject_id, faculty=faculty)
+                    st.session_state.active_session_id = sid
+                    st.rerun()
             else:
-                if st.button("⏹  Stop Session", type="primary", use_container_width=True):
-                    st.session_state.stop_event.set()
-                    st.session_state.cam_running = False
+                if st.button("⏹  End Session", type="primary", use_container_width=True):
+                    st.session_state.active_session_id = None
                     st.rerun()
 
-        # ── Fragment: updates ONLY this component, no full-page flicker ──────
-        @st.fragment(run_every=0.1)
-        def _live_feed():
-            if not st.session_state.cam_running:
-                return  # fragment goes quiet once session ends
-
+        # ── Web Camera (Browser-Based) ─────────────────────────────────────────
+        if st.session_state.active_session_id:
             sid = st.session_state.active_session_id
-            st.caption(f"🎥 Session #{sid} live  •  Recognition running")
-
-            # Non-blocking fetch — hold last frame when queue is momentarily empty
-            try:
-                frame = st.session_state.frame_queue.get_nowait()
-                st.session_state["last_cam_frame"] = frame
-            except queue.Empty:
-                frame = st.session_state.get("last_cam_frame", None)
-
-            if frame is not None:
-                st.image(frame, channels="RGB", use_container_width=True)
-            else:
-                st.info("⏳ Starting camera — please wait…")
-
-            # Detect if thread died naturally (after grace period)
-            thread     = st.session_state.cam_thread
-            started_at = st.session_state.get("cam_started_at", time.time())
-            if thread and not thread.is_alive() and (time.time() - started_at > 6):
-                st.session_state.cam_running = False
-                st.session_state.pop("last_cam_frame", None)
-                st.rerun()   # full rerun to show session summary
-
-        if st.session_state.cam_running:
-            _live_feed()
-        elif st.session_state.active_session_id:
-            sid  = st.session_state.active_session_id
+            st.caption(f"🎥 Session #{sid} live  •  Requesting camera access...")
+            
+            webrtc_streamer(
+                key="attendance-camera",
+                video_processor_factory=lambda: AttendanceVideoProcessor(sid, st.session_state.threshold),
+                rtc_configuration=RTC_CONFIG,
+                media_stream_constraints={"video": True, "audio": False},
+                async_processing=True,
+            )
+            
             recs = get_session_attendance(sid)
-            st.success(f"✅ Session ended — **{len(recs)} student(s)** marked present.")
             if recs:
+                st.markdown("---")
+                section(f"📊 Live Session Attendance ({len(recs)})")
                 df = pd.DataFrame(recs)[["roll_no","name","time","confidence"]]
                 df.columns = ["Roll No","Name","Time In","Distance"]
                 df["Confidence"] = df["Distance"].apply(confidence_badge)
                 st.write(df[["Roll No","Name","Time In","Confidence"]].to_html(
                     escape=False, index=False), unsafe_allow_html=True)
+        else:
+            card("<b>Ready to start</b>. Select a subject and click Start Session to open your camera.")
 
 # ─── TAB 2: Students ──────────────────────────────────────────────────────────
 

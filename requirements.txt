@@ -9,3 +9,5 @@ google-cloud-firestore
 tf-keras
 scipy
 numpy
+streamlit-webrtc
+av
