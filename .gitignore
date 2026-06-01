@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+.env/
+env/
+
+# Firebase Keys (VERY IMPORTANT: DO NOT REMOVE THIS)
+serviceAccountKey.json
+
+# Local Database fallback
+database/attendance.db
+database/embeddings.pkl
+
+# Exports
+exports/
+*.csv
+*.xlsx
+
+# Local Face Photos
+faces/
+*.jpg
+*.png
+
+# Streamlit logs
+.streamlit/
